@@ -85,8 +85,6 @@ $VMListItem | ForEach-Object -Parallel{
     $SubscriptionList = Get-AzSubscription
     # Set current list item to variable
     $vm = $_
-    #Parse first 3 letters of vm name to pull fxi or tnt 
-    $vmOrg = $vm.Substring(0,3)
     # Reset vmfound variable 
     $vmfound = $False
     # Search through each subscription signed in user has access to 
