@@ -3,7 +3,6 @@
 param(
     [switch]$Debug = $false
 )
-
 $VMListItem = Get-Content -Path .\AzureBulkScriptInput.txt
 # Set throttle limit (max amount of concurrent jobs)
 $maxJobs = 5
@@ -33,6 +32,29 @@ while($confirmation -ne "y")
     Write-Host $VMListItem
     $confirmation = Read-Host "Is this correct? [y/n]"
 }
+
+# Check user is logged in 
+$context = Get-AzContext  
+if (!$context) 
+{
+    Write-Host "Not signed in - please sign in to Azure" -ForegroundColor Red
+    Connect-AzAccount
+} 
+else 
+{
+    if($using:Debug -eq $true) {Write-Host "Already connected to Azure"-ForegroundColor Green}
+}
+
+#Install modules if not already installed 
+if(-not (Get-Module Az.Compute -ListAvailable)){
+    Install-Module Az.Compute -Scope CurrentUser -Force 
+}
+
+if(-not (Get-Module Az.Accounts -ListAvailable)){
+    Install-Module Az.Accounts -Scope CurrentUser -Force 
+}
+
+
 
 #initialise collections's
 $errorVmCollection = [System.Collections.Concurrent.ConcurrentBag[psobject]]::new()
