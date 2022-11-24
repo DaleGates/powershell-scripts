@@ -4,7 +4,9 @@ param(
     [switch]$Debug = $false
 )
 
-$VMListItem = Get-Content -Path .\fedexBulkScriptInput.txt
+$VMListItem = Get-Content -Path .\AzureBulkScriptInput.txt
+# Set throttle limit (max amount of concurrent jobs)
+$maxJobs = 5
 
 # Sanity check of blank list 
 if ($VMListItem -eq $null)
@@ -38,6 +40,10 @@ $notfoundvms = [System.Collections.Concurrent.ConcurrentBag[psobject]]::new()
 
 #Start parallel execution of scripts
 $VMListItem | ForEach-Object -Parallel{
+    if($_.trim() -eq ""){
+        if($using:Debug -eq $true) {Write-Host "DEBUG: Entry is blank - Moving on.." -ForegroundColor Cyan}
+        break
+    }
     function Invoke-AZVMLinux {
         param (
             [Parameter(Mandatory)]
@@ -45,13 +51,13 @@ $VMListItem | ForEach-Object -Parallel{
         )
         try {
             if($using:Debug -eq $true) {Write-Host "DEBUG: Invoking script on $($vm.name)" -ForegroundColor Cyan}
-            $output = Invoke-AzVMRunCommand -ResourceGroupName $vm.ResourceGroupName -VMName $vm.name -CommandID 'RunShellScript' -ScriptPath .\fedexBulkScript.sh -ErrorAction Stop
+            $output = Invoke-AzVMRunCommand -ResourceGroupName $vm.ResourceGroupName -VMName $vm.name -CommandID 'RunShellScript' -ScriptPath .\AzureBulkScript.sh -ErrorAction Stop
             $linux_dir = New-Item -ItemType Directory -Force -Path ".\$((Get-Date).ToString('yyyy-MM-dd'))_linux_run"
             Write-Host "Output for : $($vm.Name)"
             Write-Output –InputObject $output.Value[0].Message | Tee-Object -file "$linux_dir\$($vm.name).txt" -Append
         }
         catch {
-            $errorMessage = Get-Error
+            $errorMessage = Get-Error -Newest 1
             if($using:Debug -eq $true) {Write-Host "DEBUG: Error on $($vm.Name) : $($errorMessage.Exception.InnerException.Message)"-ForegroundColor Cyan}
             $errorObj += New-Object -TypeName psobject -Property @{VM=$($vm.Name);ERROR=$($errorMessage.Exception.InnerException.Message).ToString()}
             # Have to pull error collection local in order to write to back to it in a parallel Job
@@ -67,13 +73,13 @@ $VMListItem | ForEach-Object -Parallel{
         )
         try {
             if($using:Debug -eq $true) {Write-Host "DEBUG: Invoking script on $($vm.name)" -ForegroundColor Cyan}
-            $output = Invoke-AzVMRunCommand -ResourceGroupName $vm.ResourceGroupName -VMName $vm.name -CommandID 'RunPowerShellScript' -ScriptPath .\fedexBulkScript.ps1 -ErrorAction Stop
+            $output = Invoke-AzVMRunCommand -ResourceGroupName $vm.ResourceGroupName -VMName $vm.name -CommandID 'RunPowerShellScript' -ScriptPath .\AzureBulkScript.ps1 -ErrorAction Stop
             $linux_dir = New-Item -ItemType Directory -Force -Path ".\$((Get-Date).ToString('yyyy-MM-dd'))_windows_run"
             Write-Host "Output for : $($vm.Name)"
             Write-Output –InputObject $output.Value[0].Message | Tee-Object -file "$linux_dir\$($vm.name).txt" -Append
         }
         catch {
-            $errorMessage = Get-Error 
+            $errorMessage = Get-Error -Newest 1
             if($using:Debug -eq $true) {Write-Host "DEBUG: Error on $($vm.Name) : $($errorMessage.Exception.InnerException.Message)" -ForegroundColor Cyan}
             $errorObj += New-Object -TypeName psobject -Property @{VM=$($vm.Name);ERROR=$($errorMessage.Exception.InnerException.Message).ToString()}
             # Have to pull error collection local in order to write to back to it in a parallel Job
@@ -118,7 +124,7 @@ $VMListItem | ForEach-Object -Parallel{
         $localNotFoundVM.Add($vm.ToString())
     }
 # Run 5 Jobs at once
-} -ThrottleLimit 5
+} -ThrottleLimit $maxJobs
 
 if ($errorVmCollection -ne $null){
     $error_dir = New-Item -ItemType Directory -Force -Path ".\$((Get-Date).ToString('yyyy-MM-dd'))_errorvms"

@@ -14,7 +14,7 @@ Throttle limit is currently set to 5 (meaning no more than 5 VM's will be handle
 This is for the list of target vm's to search and execute from - they can be windows or linux
 Each VM should be seperated by a new line
 
-This should be the Azure VM portal name
+This should be the Azure VM name
 
 #### **Example**
 
@@ -39,6 +39,8 @@ Powershell script to execute against windows machines
 ### **AzureBulkScriptExecuteMain.ps1**
 
 The main script to execute in order to use, this will use all of the above files relative to where the script is ran (keep them together in the same folder)
+
+`$maxJobs` variable can be changed at the top of the script to execute on more VM's at once
 
 Script will also detect what OS the VM is using and execute either powershell for Windows or Shell for Linux
 
