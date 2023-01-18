@@ -149,11 +149,11 @@ $VMListItem | ForEach-Object -Parallel{
 if ($errorVmCollection -ne $null){
     $error_dir = New-Item -ItemType Directory -Force -Path ".\$((Get-Date).ToString('yyyy-MM-dd'))_errorvms"
     Write-Host "Errored VM's: " -ForegroundColor Red
-    $errorVmCollection | Format-Table -Wrap -AutoSize | Tee-Object -file "$error_dir\$((Get-Date).ToString('yyyy-MM-dd'))_errorLogs.txt" -Append
+    $errorVmCollection | Format-Table 'VM','MESSAGE' -Wrap -AutoSize | Tee-Object -file "$error_dir\$((Get-Date).ToString('yyyy-MM-dd'))_errorLogs.txt" -Append
 }
 
 if ($notfoundvms -ne $null){
     $notfounddir = New-Item -ItemType Directory -Force -Path ".\$((Get-Date).ToString('yyyy-MM-dd'))_notfoundvms"
     Write-Host "VM's not found: " -ForegroundColor Yellow
-    Write-Host ($notfoundvms -join "`n") -ForegroundColor Yellow | Tee-Object -file "$notfounddir\$((Get-Date).ToString('yyyy-MM-dd'))_notfound_logs.txt" -Append
+    $notfoundvms | Format-Table 'VM','MESSAGE' -Wrap -AutoSize | Tee-Object -file "$notfounddir\$((Get-Date).ToString('yyyy-MM-dd'))_notfound_logs.txt" -Append
 }
